@@ -1,0 +1,143 @@
+agent Switches {
+    module Console C;
+    module System system;
+
+    types Switches {
+        formula Light(string, string); // first arg is code name of light and second is status
+        formula Switch(string, string); // should be "on" of "off"
+        formula Link(string, string);
+    }
+
+    initial Light("L1", "off"), Light("L2", "off");
+    initial Switch("S1", "off"), Switch("S2", "off");
+    // link is the link between the switch and the lights that allows for the special behavior when both are on
+    initial Link("off", "off"); // left is s1 and right is s2
+
+    // when switch is on lights that are off will run the edit_link goal
+    rule +Switch("S1", "on") {
+        !edit_link("S1", "on");
+    }
+    rule +Switch("S2", "on") {
+        !edit_link("S2", "on");
+    }
+
+    // when switch is off lights that are on will run the edit_link goal
+    rule +Switch("S1", "off") {
+        !edit_link("S1", "off");
+    }
+    rule +Switch("S2", "off") {
+        !edit_link("S2", "off");
+    }
+
+    // edits the status of the links which then triggers the lights to change
+    rule +!edit_link(string S, string V){
+        // uses traditional if statements to handle the edit_link call
+        if (S == "S1"){
+            -Link(string Q, string P);
+            +Link(V, P);
+        }
+        if (S == "S2"){
+            -Link(string Q, string P);
+            +Link(Q, V);
+        }
+    }
+    // Link change triggers a change in the lights 
+    rule +Link("on", "off") {
+        -Light("L1", string J);
+        +Light("L1", "on");
+        C.println("L1 is in state: on");
+        -Light("L2", string K);
+        +Light("L2", "off");
+        C.println("L1 is in state: off");
+    }
+
+    rule +Link("off", "on"){
+        -Light("L1", string J);
+        +Light("L1", "off");
+        C.println("L1 is in state: off");
+        -Light("L2", string K);
+        +Light("L2", "on");
+        C.println("L2 is in state: on"); 
+    }
+
+    rule +Link("off", "off"){
+        -Light("L1", string J);
+        +Light("L1", "off");
+        C.println("L1 is in state: off");
+        -Light("L2", string K);
+        +Light("L2", "off");
+        C.println("L2 is in state: off");
+    }
+    // special behaviour for when the link is "on":"on"
+    rule +Link("on", "on"){
+        //combo 1
+        -Light("L1", string J);
+        +Light("L1", "on");
+        C.println("L1 is in state: on");
+        -Light("L2", string K);
+        +Light("L2", "off");
+        C.println("L2 is in state: off");
+        system.sleep(1000);
+        //combo 2
+        -Light("L1", string JA);
+        +Light("L1", "off");
+        C.println("L1 is in state: off");
+        -Light("L2", string KA);
+        +Light("L2", "on");
+        C.println("L2 is in state: on");
+        system.sleep(1000);
+        //combo 3
+        -Light("L1", string JB);
+        +Light("L1", "on");
+        C.println("L1 is in state: on");
+        -Light("L2", string KB);
+        +Light("L2", "on");
+        C.println("L2 is in state: on");
+        system.sleep(1000);
+        //combo 4
+        -Light("L1", string JC);
+        +Light("L1", "off");
+        C.println("L1 is in state: off");
+        -Light("L2", string KC);
+        +Light("L2", "off");
+        C.println("L2 is in state: off");
+        system.sleep(1000);  
+    }
+
+
+
+    // flips the switch to whichever of "on"/"off" which it is not in
+    // the events above will be triggered by switch changing
+    rule +!flip_switch(string S){
+        query(Switch(S, string U));
+        if (U == "on") {
+            -Switch(S, "on");
+            +Switch(S, "off");
+            }
+        if (U == "off") {
+            -Switch(S, "off"); 
+            +Switch(S, "on");
+        }
+    }
+    
+    // main rule runs for loop for 10 iterations
+    rule +!main(list things){
+        int i = 0;
+        int x = 1;
+        while (i < x){
+            system.sleep(2000);
+            !flip_switch("S1");
+            system.sleep(2000);
+            !flip_switch("S1");
+            !flip_switch("S2");
+            system.sleep(2000);
+            !flip_switch("S1");
+            system.sleep(2000);
+            !flip_switch("S1");
+            !flip_switch("S2");
+            system.sleep(20000);
+            
+        }
+    }
+    
+}
